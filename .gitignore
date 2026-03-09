@@ -1,0 +1,16 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# GIS Data (Keep these local)
+*.tif
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.qpj
+
+# Project Files
+.DS_Store
