@@ -1,10 +1,11 @@
 import geopandas as gpd
+import os
 
-MARKS_FILE = "Marks_Brief1.shp"
-BUILDINGS_FILE = "BuildingFootprints.shp"
-OUTPUT_FILE = "Marks_Brief1_with_Vectors.shp"
+MARKS_FILE = "data/Marks_Brief1.shp"
+BUILDINGS_FILE = "data/BuildingFootprints.shp"
+OUTPUT_FILE = "data/Marks_Brief1_with_Vectors.shp"
 
-# Our ground-truth dictionary
+# Ground-truth dictionary
 doorway_angles = {
     150: "180", 151: "180", 152: "180", 153: "90", 154: "225", 155: "90", 156: "90", 157: "90",
     158: "90,270", 159: "90", 160: "90", 161: "90", 162: "90", 163: "90", 164: "90", 165: "180",
@@ -18,37 +19,33 @@ doorway_angles = {
 }
 
 def main():
-    print("Performing Spatial Join to identify buildings...")
+    print("--- PREPROCESSING: SPATIAL JOIN FOR DOORWAY VECTORS ---")
+    
+    if not os.path.exists("data"):
+        print("ERROR: 'data' folder not found. Run from the project root.")
+        return
+
     marks = gpd.read_file(MARKS_FILE)
     buildings = gpd.read_file(BUILDINGS_FILE)
 
-    # Ensure both are in the same coordinate system
     marks = marks.to_crs(buildings.crs)
-
-    # Identify the correct ID column in the BUILDINGS file (likely 'id' or 'ID')
     b_id_col = next((c for c in buildings.columns if c.lower() in ['id', 'fid', 'objectid', 'build_id']), buildings.columns[0])
-    print(f"Using building ID column: {b_id_col}")
-
-    # Spatial Join: Points that are 'within' building footprints
+    
     joined = gpd.sjoin(marks, buildings[[b_id_col, 'geometry']], how='left', predicate='within')
-
     joined['Door_Angle'] = "Unknown"
     match_count = 0
     
     for idx, row in joined.iterrows():
         try:
-            # Look up the building ID found at this point's location
             real_id = int(row[b_id_col])
             if real_id in doorway_angles:
                 joined.at[idx, 'Door_Angle'] = doorway_angles[real_id]
                 match_count += 1
         except: continue
             
-    # Clean up and save
     joined.to_file(OUTPUT_FILE)
     print(f"SUCCESS: Geographically matched {match_count} points to buildings.")
+    print(f"Saved to: {OUTPUT_FILE}")
 
 if __name__ == "__main__":
     main()
-
-working solution for the line cutting through houses 161 and 226.

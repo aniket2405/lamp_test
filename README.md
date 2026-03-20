@@ -77,3 +77,8 @@ Upon overlaying the final Probabilistic Network (Red Braids) in QGIS, several ke
 - **Pathfinding Engine:** `Scikit-image` (MCP - Minimal Cost Path)
 - **Visualization:** `QGIS 3.x`
 
+## notes
+
+By fusing Unsupervised ML (SAR density) with Anisotropic Doorway penalties, the model identified a previously 'invisible' packed-earth corridor along the southern edge of the site. As seen on the map, the Global Minimum Cost Path (Baseline) now perfectly bisects the densest cluster of the Probabilistic Monte Carlo network. This proves that the combination of architectural layout and historical soil compaction dictated a primary southern thoroughfare, while the braided network successfully visualizes the secondary range of human deviations through the neighborhood alleyways.
+
+The probabilistic simulation reveals a highly constrained spatial network. Rather than dispersing evenly across the site, the Monte Carlo iterations consistently converged on a single dominant Western-to-Southern corridor. This strong clustering indicates that the combination of the site's topography, surviving architectural boundaries, and historically compacted soil created a highly formalized 'main artery' for human movement, with variations limited to micro-deviations around specific tomb clusters.

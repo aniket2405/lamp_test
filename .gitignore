@@ -1,16 +1,40 @@
-# Python
+# -----------------------------
+# Python & Environment
+# -----------------------------
 venv/
 __pycache__/
 *.pyc
+.env
+*.log
 
-# GIS Data (Keep these local)
+# -----------------------------
+# OS Generated Files
+# -----------------------------
+.DS_Store
+Thumbs.db
+
+# -----------------------------
+# GIS & Spatial Data (Heavy Files)
+# -----------------------------
 *.tif
+*.tfw
 *.shp
 *.shx
 *.dbf
 *.prj
 *.cpg
 *.qpj
+*.qmd
 
-# Project Files
-.DS_Store
+# QGIS lock files
+*.qgz~
+*.qgs~
+
+# -----------------------------
+# Project Directories
+# -----------------------------
+data/*
+output/*
+
+!data/.gitkeep
+!output/.gitkeep
