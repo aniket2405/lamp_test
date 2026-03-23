@@ -50,7 +50,14 @@ source venv/bin/activate  # On Windows use: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-**4. Data Placement:** Ensure the raw DEM files and shapefiles are placed in the `data/` directory. *(Note: empty directories are tracked via `.gitkeep`).*
+**4. Data Acquisition:**
+The spatial datasets (DEMs and Shapefiles) are not stored in this repository due to file size constraints.
+* **Download Link:** [El Bagawat Test Dataset (Box)](https://app.box.com/s/6c5tv2nvbm9d1a7bpmryvmc00sdo79op)
+* **Instructions:** Download the contents and place the raw files into the `data/` directory. The pipeline expects the following files to be present:
+    * `DEM_Subset-WithBuildings.tif`
+    * `DEM_Subset-Original.tif`
+    * `Marks_Brief1_with_Vectors.shp`
+    * `BuildingFootprints.shp`
 
 **5. Execution Order:**
 
