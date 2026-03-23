@@ -10,6 +10,7 @@
 * **Task 1:** ML-driven pathfinding accounting for topography, surface friction, and specific building entrances. Rendered as a GIS vector layer.
 * **Task 2:** 3D ray-traced viewsheds calculating gradients of visibility across a true 3D landscape (accounting for Z-heights of mud-brick tombs). Rendered as a GIS vector layer.
 * **Bonus:** Interactive 3D volume rendering of the landscape and viewsheds.
+* **Developer UX:** Interactive `demo.ipynb` wrapper for rapid testing.
 
 ## 3. Condition Logic (The Architecture)
 
@@ -34,7 +35,7 @@ Outputs are synchronously printed to `stdout` for real-time monitoring and perma
 
 **1. Clone the Repository:**
 ```bash
-git clone [https://github.com/aniket2405/lamp_test](https://github.com/aniket2405/lamp_test)
+git clone https://github.com/aniket2405/lamp_test
 cd lamp_test
 ```
 
@@ -52,12 +53,31 @@ pip install -r requirements.txt
 **4. Data Placement:** Ensure the raw DEM files and shapefiles are placed in the `data/` directory. *(Note: empty directories are tracked via `.gitkeep`).*
 
 **5. Execution Order:**
+
+You can execute the pipeline in two ways:
+
+#### Option A: Interactive Demo (Recommended for Quick Review)
+If you prefer a guided walkthrough, open the `demo.ipynb` Jupyter Notebook in the root directory. This notebook serves as a wrapper for the entire pipeline, providing cell-by-cell execution and immediate visual previews of the generated maps.
+
+#### Option B: Command Line Interface (CLI)
+For a production-style execution, run the scripts in order from your terminal:
+
 ```bash
-* `python scripts/01_preprocess_doorways.py` (Prepares doorway vectors).
-* `python scripts/02_task1_pipeline.py` (Generates spatial network).
-* *Note on Task 2:* You can open the Task 2 scripts and modify `OBSERVER_PT_ID` to dynamically calculate visibility from any building (e.g., 154, 180, 224).
-* `python scripts/03a_task2_viewshed.py` (Generates the 2D GIS vector layer dynamically named by ID).
-* `python scripts/03b_task2_3d_render.py` (Generates the interactive browser-based 3D volume).
+# 1. Prepare doorway vectors
+python scripts/01_preprocess_doorways.py
+
+# 2. Generate spatial network
+python scripts/02_task1_pipeline.py
+
+# --- NOTE ON TASK 2 ---
+# You can open the Task 2 scripts and modify OBSERVER_PT_ID to 
+# dynamically calculate visibility from any building (e.g., 154, 180, 224).
+
+# 3. Generate the 2D GIS vector layer (dynamically named by ID)
+python scripts/03a_task2_viewshed.py
+
+# 4. Generate the interactive browser-based 3D volume
+python scripts/03b_task2_3d_render.py
 ```
 
 **6. Viewing in QGIS:**
@@ -71,8 +91,12 @@ To verify the vector outputs, open QGIS and import `DEM_Subset-Original.tif` as 
 * `output/Task1_Probabilistic_Network.shp`
 * `output/Task2_Viewshed_[ID].shp` (Dynamically generated based on observer point)
 
+**Developer Note:** While the static previews below demonstrate results for Buildings 154, 180, and 224, the pipeline is fully dynamic. Running the `demo.ipynb` or the CLI scripts allows for real-time recalculation of these viewsheds from any building ID on the site.
+
 ### Task 1: Anisotropic Pathfinding Simulation
-This rendering demonstrates the probabilistic spatial network. The algorithm injects high friction penalties for buildings and low friction for doorways, tracing the global minimum path (red) across the topology.
+This rendering demonstrates the probabilistic spatial network. While the pipeline is **fully dynamic**—allowing users to input any combination of building IDs to generate custom transit routes—this specific simulation anchors the network to the three critical observer points provided in the test data (Buildings 154, 180, and 224). 
+
+These specific points were chosen because they represent distinct topological zones (a boundary structure, a central complex, and an eastern tomb), providing a rigorous test of the algorithm. By injecting high friction penalties for solid mud-brick structures and low friction for verified doorways, the algorithm successfully traces the global minimum path (red) connecting these anchor points across the landscape.
 
 <img src="images/path.png" width="100%" alt="Task 1 Pathway">
 Figure 1: The predicted transit pathway navigating the necropolis topology, highlighting the avoidance of 3D structures and utilization of mapped doorways.
