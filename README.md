@@ -33,24 +33,32 @@ Outputs are synchronously printed to `stdout` for real-time monitoring and perma
 ## 5. How to Run Locally
 
 **1. Clone the Repository:**
-    git clone https://github.com/aniket2405/lamp_test
-    cd lamp
+```bash
+git clone [https://github.com/aniket2405/lamp_test](https://github.com/aniket2405/lamp_test)
+cd lamp_test
+```
 
 **2. Set Up Virtual Environment:**
-    python3 -m venv venv
-    source venv/bin/activate  # On Windows use: venv\Scripts\activate
+```bash
+python3 -m venv venv
+source venv/bin/activate  # On Windows use: venv\Scripts\activate
+```
 
 **3. Install Dependencies:**
-    pip install -r requirements.txt
+```bash
+pip install -r requirements.txt
+```
 
 **4. Data Placement:** Ensure the raw DEM files and shapefiles are placed in the `data/` directory. *(Note: empty directories are tracked via `.gitkeep`).*
 
 **5. Execution Order:**
-* Run `python scripts/01_preprocess_doorways.py` (Prepares doorway vectors).
-* Run `python scripts/02_task1_pipeline.py` (Generates spatial network).
+```bash
+* `python scripts/01_preprocess_doorways.py` (Prepares doorway vectors).
+* `python scripts/02_task1_pipeline.py` (Generates spatial network).
 * *Note on Task 2:* You can open the Task 2 scripts and modify `OBSERVER_PT_ID` to dynamically calculate visibility from any building (e.g., 154, 180, 224).
-* Run `python scripts/03a_task2_viewshed.py` (Generates the 2D GIS vector layer dynamically named by ID).
-* Run `python scripts/03b_task2_3d_render.py` (Generates the interactive browser-based 3D volume).
+* `python scripts/03a_task2_viewshed.py` (Generates the 2D GIS vector layer dynamically named by ID).
+* `python scripts/03b_task2_3d_render.py` (Generates the interactive browser-based 3D volume).
+```
 
 **6. Viewing in QGIS:**
 To verify the vector outputs, open QGIS and import `DEM_Subset-Original.tif` as a Hillshade base layer. Set the Hillshade blending mode to **Multiply** over a satellite base map for true 3D depth. Drag and drop the generated `Task1_Global_Minimum_Path.shp` and `Task2_Viewshed.shp` files over the terrain. Apply a 60% opacity to the viewshed layer to visualize the precise gradient of visibility.
@@ -67,10 +75,10 @@ To verify the vector outputs, open QGIS and import `DEM_Subset-Original.tif` as 
 This rendering demonstrates the probabilistic spatial network. The algorithm injects high friction penalties for buildings and low friction for doorways, tracing the global minimum path (red) across the topology.
 
 <img src="images/path.png" width="100%" alt="Task 1 Pathway">
-> **Figure 1:** The predicted transit pathway navigating the necropolis topology, highlighting the avoidance of 3D structures and utilization of mapped doorways.
+Figure 1: The predicted transit pathway navigating the necropolis topology, highlighting the avoidance of 3D structures and utilization of mapped doorways.
 
 ### Task 2: Vector Viewsheds & 3D Interactive Volumes
-The pipeline dynamically calculates viewsheds from any given point. Below are the results from three critical observer points: a boundary structure (154), the central complex (180), and an eastern tomb (224).
+The pipeline dynamically calculates viewsheds from any given point. Below are the results from three critical observer points: a western boundary structure (154), the central complex (180), and an eastern tomb (224).
 * **Top Row:** Mathematically ray-traced 2D GIS vector layers (Cyan) draped over satellite imagery and 3D hillshades.
 * **Bottom Row:** Interactive 3D browser renders showcasing roof-edge occlusion and true Z-axis shadows.
 
