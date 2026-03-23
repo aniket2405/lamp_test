@@ -53,11 +53,11 @@ pip install -r requirements.txt
 **4. Data Acquisition:**
 The spatial datasets (DEMs and Shapefiles) are not stored in this repository due to file size constraints.
 * **Download Link:** [El Bagawat Test Dataset (Box)](https://app.box.com/s/6c5tv2nvbm9d1a7bpmryvmc00sdo79op)
-* **Instructions:** Download the contents and place the raw files into the `data/` directory. The pipeline expects the following files to be present:
-    * `DEM_Subset-WithBuildings.tif`
-    * `DEM_Subset-Original.tif`
-    * `Marks_Brief1_with_Vectors.shp`
-    * `BuildingFootprints.shp`
+* **Crucial Step:** Please ensure all `.tif` and `.shp` files (and their sidecars) are moved from their subfolders directly into the root of the `/data` folder.
+* **Final Structure should be:**
+    - `lamp_test/data/DEM_Subset-WithBuildings.tif`
+    - `lamp_test/data/Marks_Brief1_with_Vectors.shp`
+    - (and so on...)
 
 **5. Execution Order:**
 
