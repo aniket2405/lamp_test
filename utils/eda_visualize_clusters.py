@@ -1,12 +1,37 @@
+import os
+import logging
+from datetime import datetime
 import rasterio
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 
-SAR_FILE_PATH = "SAR-MS.tif"
+# --- LOGGING SETUP ---
+# Create logs directory if it doesn't exist
+os.makedirs("logs", exist_ok=True)
+log_filename = datetime.now().strftime("logs/lamp_pipeline_%Y%m%d.log")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.FileHandler(log_filename), # Saves to the text file
+        logging.StreamHandler()            # Prints to the terminal
+    ]
+)
+
+# --- CONFIG ---
+SAR_FILE_PATH = "data/SAR-MS.tif"
 
 def main():
-    print("Loading 8-band multispectral data...")
+    logging.info("--- TASK 1: SAR-MS K-MEANS SURFACE CLUSTERING ---")
+
+    if not os.path.exists(SAR_FILE_PATH):
+        logging.error(f"File not found: {SAR_FILE_PATH}. Ensure it is inside the data/ directory.")
+        return
+
+    logging.info("Loading 8-band multispectral data...")
     with rasterio.open(SAR_FILE_PATH) as src:
         ms_array = src.read() 
         # ms_array shape is currently (8, 58, 70)
@@ -17,7 +42,7 @@ def main():
     # It needs a 2D table: (Number of Pixels, Number of Features).
     # We flatten our (58x70) grid into 4,060 individual pixels.
     # Each pixel has 8 features (the spectral bands).
-    print("Flattening matrix for machine learning...")
+    logging.info("Flattening matrix for machine learning...")
     
     # Transpose moves bands to the end: (58, 70, 8), then reshape makes it (4060, 8)
     reshaped_data = ms_array.transpose(1, 2, 0).reshape(rows * cols, bands)
@@ -28,7 +53,7 @@ def main():
     # --- 2. TRAIN THE COMPUTER VISION MODEL ---
     # We ask the algorithm to find K=4 distinct surface types in the dirt.
     n_clusters = 4 
-    print(f"Training K-Means clustering model to identify {n_clusters} surface types...")
+    logging.info(f"Training K-Means clustering model to identify {n_clusters} surface types...")
     
     kmeans = KMeans(n_clusters=n_clusters, random_state=42)
     
@@ -40,7 +65,7 @@ def main():
     clustered_image = labels.reshape(rows, cols)
     
     # --- 4. VISUALIZATION ---
-    print("Rendering Classified Surface Map...")
+    logging.info("Rendering Classified Surface Map...")
     plt.figure(figsize=(10, 8))
     
     # We use a discrete colormap to clearly show the boundaries of the classes
@@ -50,6 +75,8 @@ def main():
     plt.xlabel("Columns (X)")
     plt.ylabel("Rows (Y)")
     plt.show()
+
+    logging.info("SUCCESS: K-Means clustering visualization complete.")
 
 if __name__ == "__main__":
     main()

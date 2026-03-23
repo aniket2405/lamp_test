@@ -1,4 +1,6 @@
 import os
+import logging
+from datetime import datetime
 import numpy as np
 import rasterio
 import geopandas as gpd
@@ -8,36 +10,43 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
+# --- LOGGING SETUP ---
+# Create logs directory if it doesn't exist
+os.makedirs("logs", exist_ok=True)
+log_filename = datetime.now().strftime("logs/lamp_pipeline_%Y%m%d.log")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.FileHandler(log_filename), # Saves to the text file
+        logging.StreamHandler()            # Prints to the terminal
+    ]
+)
+
 # --- CONFIG ---
 DEM_ORIGINAL_FILE = "data/DEM_Subset-Original.tif"       # For 3D Graphics
 DEM_BUILDINGS_FILE = "data/DEM_Subset-WithBuildings.tif" # For Math/Shadows
 FOOTPRINTS_FILE = "data/BuildingFootprints.shp"
 PATHS_FILE = "output/Task1_Global_Minimum_Path.shp" 
-OBSERVER_PT_ID = 224
+OBSERVER_PT_ID = 180
 
 # Because the "WithBuildings" DEM already has the roof height baked in, 
-# 1.6m simulates a person standing on the roof of Building 180.
-OBSERVER_HEIGHT = 1.6 
-STRIDE = 1 
-
-# def get_observer_node(dem_meta, building_id):
-#     buildings = gpd.read_file(FOOTPRINTS_FILE)
-#     b_col = 'ID' 
-#     building = buildings[buildings[b_col] == building_id].centroid.iloc[0]
-#     transform = dem_meta.transform
-#     c_px, r_px = ~transform * (building.x, building.y)
-#     return int(r_px), int(c_px)
+# 1.6m simulates a person standing on the roof of Building <OBSERVER_PT_ID>.
+OBSERVER_HEIGHT = 1.6
+STRIDE = 1
 
 def get_observer_node(dem_meta, building_id):
     """Dynamically finds the center of ANY building by its ID."""
     buildings = gpd.read_file(FOOTPRINTS_FILE)
-    
+
     # Safely find the ID column name
     b_col = next((c for c in buildings.columns if c.lower() in ['id', 'fid', 'objectid', 'build_id']), buildings.columns[0])
-    
+
     # Find the specific building and get its center
     building = buildings[buildings[b_col] == building_id].centroid.iloc[0]
-    
+
     transform = dem_meta.transform
     c_px, r_px = ~transform * (building.x, building.y)
     return int(r_px), int(c_px)
@@ -92,8 +101,11 @@ def get_building_mesh_optimized(row, dem_terrain, transform):
     return vertices, i_list, j_list, k_list
 
 def main():
-    print("--- TASK 2: 3D ARCHITECTURAL RENDERING ---")
+    logging.info("--- TASK 2: 3D ARCHITECTURAL RENDERING ---")
     
+    if not os.path.exists(PATHS_FILE):
+        logging.warning(f"Path file not found ({PATHS_FILE}). Run Task 1 scripts first if you want paths to render.")
+
     # 1. Load BOTH DEMs
     with rasterio.open(DEM_ORIGINAL_FILE) as src_terr:
         dem_terrain = src_terr.read(1)
@@ -107,7 +119,7 @@ def main():
 
     # 2. Calculate Viewshed (Using the Math Map WITH Buildings)
     start_r, start_c = get_observer_node(meta, OBSERVER_PT_ID)
-    print("Casting true 3D rays (Shadows enabled)...")
+    logging.info("Casting true 3D rays (Shadows enabled)...")
     viewshed = calculate_viewshed(dem_buildings, start_r, start_c, cell_size)
 
     # 3. Create 3D Scene (Using the Graphics Map)
@@ -155,16 +167,17 @@ def main():
     ))
 
     # 5. Drape Final PATH for Context
-    paths_gdf = gpd.read_file(PATHS_FILE).to_crs(meta.crs)
-    for _, row in paths_gdf.iterrows():
-        line_xyz = list(row.geometry.coords)
-        xs, ys, zs = [], [], []
-        for p in line_xyz:
-            c, r = ~transform * (p[0], p[1])
-            zs.append(dem_terrain[int(r), int(c)] + 0.5) # Raise slightly to be seen
-            xs.append(p[0])
-            ys.append(p[1])
-        fig.add_trace(go.Scatter3d(x=xs, y=ys, z=zs, mode='lines', line=dict(color='blue', width=6), name='Pathway'))
+    if os.path.exists(PATHS_FILE):
+        paths_gdf = gpd.read_file(PATHS_FILE).to_crs(meta.crs)
+        for _, row in paths_gdf.iterrows():
+            line_xyz = list(row.geometry.coords)
+            xs, ys, zs = [], [], []
+            for p in line_xyz:
+                c, r = ~transform * (p[0], p[1])
+                zs.append(dem_terrain[int(r), int(c)] + 0.5) # Raise slightly to be seen
+                xs.append(p[0])
+                ys.append(p[1])
+            fig.add_trace(go.Scatter3d(x=xs, y=ys, z=zs, mode='lines', line=dict(color='blue', width=6), name='Pathway'))
 
     # 6. Observer Node
     obs_x, obs_y = transform * (start_c, start_r)
@@ -186,6 +199,7 @@ def main():
         title=f"3D Necropolis Volume: True Shadows from Building {OBSERVER_PT_ID}"
     )
 
+    logging.info("SUCCESS: Launching interactive browser session.")
     fig.show()
 
 if __name__ == "__main__":

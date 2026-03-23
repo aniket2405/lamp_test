@@ -1,4 +1,6 @@
 import os
+import logging
+from datetime import datetime
 import rasterio
 import numpy as np
 import geopandas as gpd
@@ -9,6 +11,21 @@ from shapely.geometry import LineString
 import warnings
 
 warnings.filterwarnings("ignore")
+
+# --- LOGGING SETUP ---
+# Create logs directory if it doesn't exist
+os.makedirs("logs", exist_ok=True)
+log_filename = datetime.now().strftime("logs/lamp_pipeline_%Y%m%d.log")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.FileHandler(log_filename), # Saves to the text file
+        logging.StreamHandler()            # Prints to the terminal
+    ]
+)
 
 # --- CONFIG ---
 DEM_FILE = "data/DEM_Subset-Original.tif"
@@ -23,7 +40,7 @@ def calculate_slope(dem_array, cell_size):
     return np.sqrt(dx**2 + dy**2)
 
 def get_ml_surface_friction(sar_file):
-    print("Running K-Means Surface Density clustering...")
+    logging.info("Running K-Means Surface Density clustering...")
     with rasterio.open(sar_file) as src:
         ms_array = np.nan_to_num(src.read())
         bands, rows, cols = ms_array.shape
@@ -33,7 +50,7 @@ def get_ml_surface_friction(sar_file):
     return ((labels.reshape(rows, cols) / 4.0) * 2) + 1 
 
 def apply_permeable_funnels(cost_surface, marks_gdf, transform):
-    print("Applying 20x Permeable Architectural Vectors...")
+    logging.info("Applying 20x Permeable Architectural Vectors...")
     modified_cost = np.copy(cost_surface)
     rows, cols = cost_surface.shape
     y_grid, x_grid = np.mgrid[0:rows, 0:cols]
@@ -58,11 +75,11 @@ def apply_permeable_funnels(cost_surface, marks_gdf, transform):
     return np.clip(modified_cost, 1.0, 500.0)
 
 def main():
-    print("--- TASK 1: ANISOTROPIC PATHWAY SIMULATION ---")
+    logging.info("--- TASK 1: ANISOTROPIC PATHWAY SIMULATION ---")
 
     # Check if data directory exists
     if not os.path.exists("data"):
-        print("ERROR: 'data' folder not found. Are you running this from the project root?")
+        logging.error("ERROR: 'data' folder not found. Are you running this from the project root?")
         return
         
     # Auto-create output directory if it doesn't exist
@@ -92,7 +109,7 @@ def main():
     global_minimum_paths = []
     probabilistic_paths = []
 
-    print(f"Routing from Building 180 to {len(nodes)-1} targets...")
+    logging.info(f"Routing from Building 180 to {len(nodes)-1} targets...")
 
     for i in range(1, len(nodes)):
         target_node = nodes[i]
@@ -117,11 +134,11 @@ def main():
     # 4. Export Both Shapefiles
     if global_minimum_paths:
         gpd.GeoDataFrame(geometry=global_minimum_paths, crs=crs).to_file(OUTPUT_MINIMUM)
-        print(f"SUCCESS: Saved {OUTPUT_MINIMUM}")
+        logging.info(f"SUCCESS: Saved {OUTPUT_MINIMUM}")
         
     if probabilistic_paths:
         gpd.GeoDataFrame(geometry=probabilistic_paths, crs=crs).to_file(OUTPUT_BRAIDED)
-        print(f"SUCCESS: Saved {OUTPUT_BRAIDED}")
+        logging.info(f"SUCCESS: Saved {OUTPUT_BRAIDED}")
 
 if __name__ == "__main__":
     main()

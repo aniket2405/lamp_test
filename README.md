@@ -1,84 +1,80 @@
-# LAMP Evaluation: Task 1 - Anisotropic Probabilistic Pathway Simulation
+# LAMP: Spatial Analytics Pipeline for the Necropolis of El Bagawat
 
-## Executive Summary
+## 1. GitHub Repository Link
+* **Link:** https://github.com/aniket2405/lamp_test
 
-The standard state-of-the-art in architectural path tracing relies heavily on hydrographic "least cost path" (LCP) models. These models treat human movement like water flowing over a Digital Elevation Model (DEM), calculating routes based almost entirely on a single variable: topographic steepness. 
+## 2. Description
+**Overview:** This repository contains a complete spatial data science pipeline developed for the Late Antiquity Modeling Project (LAMP). It reconstructs the embodied experiences of the El Bagawat necropolis by predicting probabilistic human transit patterns and calculating true 3D visual occlusion.
 
-For the El-Bagawat Necropolis project, this approach is insufficient. It ignores ground density (compacted ancient paths vs. loose sand), architectural logic (the direction of building entrances), and the inherent variability of human choice. 
+**Requirements Achieved:**
+* **Task 1:** ML-driven pathfinding accounting for topography, surface friction, and specific building entrances. Rendered as a GIS vector layer.
+* **Task 2:** 3D ray-traced viewsheds calculating gradients of visibility across a true 3D landscape (accounting for Z-heights of mud-brick tombs). Rendered as a GIS vector layer.
+* **Bonus:** Interactive 3D volume rendering of the landscape and viewsheds.
 
-This document details the iterative development of a **Multi-Variable Anisotropic Behavioral Model**. By integrating Unsupervised Machine Learning (SAR-based soil density), Anisotropic Doorway Vectors, and Monte Carlo probability simulations, we successfully generated a probabilistic network of historical human movement that respects both the physical and architectural realities of the site.
+## 3. Condition Logic (The Architecture)
 
----
+### Task 1: Probabilistic Path Tracing
+* **Logic:** Replaced standard "least-cost path" (water-flow) algorithms with a probabilistic spatial network. The algorithm injects severe friction penalties for intersecting solid mud-brick tombs, while creating zero-friction nodes at verified architectural entrances (e.g., Doorways).
+* **Result:** Generates a braided network of likely transit corridors, proving that the primary southern thoroughfare was the path of least resistance.
 
-## Iterative Development & Challenges
+### Task 2: 3D Viewshed Ray-Tracing
+* **Logic:** Standard 2D planimetric tools fail to account for building heights. This pipeline utilizes a 2.5D Digital Elevation Model (`DEM_Subset-WithBuildings.tif`) to cast mathematical line-of-sight rays. The condition evaluates the slope angle of the ray: if an intervening building's Z-height exceeds the maximum slope seen so far, the ray terminates, creating an architectural shadow (roof-edge occlusion).
+* **Dynamic Targeting:** The observer logic is highly modular, engineered to calculate visual occlusion from *any given point* or building ID on the site, at a biologically accurate human eye level (1.6m).
 
-### Iteration 1: Base Geospatial Pipeline & Geometry Handling
+## 4. Logging Implementation
+**Pipeline Execution Logs:** The scripts utilize a dual-handler logging architecture via Python's `logging` module.
 
-- **Goal:** Establish a basic LCP algorithm routing paths between manually identified architectural entrances.
-- **Challenge:** The initial script crashed with an `AttributeError` when attempting to read the X/Y coordinates of the doorway vectors. The GIS software had saved single points as `MultiPoint` geometries.
-- **Solution:** We implemented a geometric `.centroid` extraction method to safely collapse `MultiPoint` arrays into singular, mathematically readable `Point` objects, allowing the matrix transformation from real-world CRS to pixel-grid indices.
+Outputs are synchronously printed to `stdout` for real-time monitoring and permanently saved to timestamped text files (e.g., `logs/lamp_pipeline_20260321.log`). Log milestones include:
+* Data ingestion status and missing file flags.
+* Coordinate transformations (Pixel to Geocoordinate translation).
+* Ray-casting counts (e.g., `[INFO] Casting true 3D rays (Shadows enabled)...`).
+* Mesh generation and explicit 3D geometry extrusion stages.
 
-### Iteration 2: Spatial Disconnects & The "Prison" Effect
+## 5. How to Run Locally
 
-- **Goal:** Generate the first set of visible paths between the Region of Interest (ROI) buildings.
-- **Challenge 1 (Data Mismatch):** The script reported `0 valid ROI buildings`. The archaeological house numbers (e.g., 180, 208) in our manual dictionary did not match the generic sequential IDs (1, 2, 3) in the `Marks_Brief1.shp` file.
-- **Challenge 2 (Cost Restrictiveness):** Even after hardcoding points, the Dijkstra routing engine returned `0 paths`. The combined penalty of steep slope ($10\times$) and rear-wall approach ($5\times$) created mathematical "prisons." The algorithm could not find a path under the maximum cost threshold.
-- **Solution:** 1. We wrote a **Spatial Join script** (`gpd.sjoin`) to geometrically match points to the `BuildingFootprints.shp` polygons, dynamically looking up the correct building IDs based on location rather than attribute tables.
-  1. We recalibrated the cost multipliers (lowering slope weight to $2\times$) and switched to a "Chain Topology" (routing from Node A to B, B to C) to ensure the network remained fully connected without hitting maximum cost limits.
+**1. Clone the Repository:**
+    git clone https://github.com/aniket2405/lamp_test
+    cd lamp
 
-### Iteration 3: "Invisible Paths" & Probabilistic Braiding
+**2. Set Up Virtual Environment:**
+    python3 -m venv venv
+    source venv/bin/activate  # On Windows use: venv\Scripts\activate
 
-- **Goal:** Address the requirement to identify "pathways no longer visible today" and simulate the "possible range" of human movement.
-- **Challenge:** A single yellow "Least Cost Path" represents a mathematical ideal, not human reality. Furthermore, optical imagery (`OrthoImage`) cannot reveal paths buried under sand.
-- **Solution:** * **SAR ML Clustering:** We fed the 8-band `SAR-MS.tif` into an unsupervised **K-Means clustering** algorithm ($k=5$). Because Synthetic Aperture Radar detects sub-surface soil density, this identified historical "Packed Earth" anomalies (ancient compacted paths) distinct from loose sand. 
-  - **Monte Carlo Braiding:** We wrapped the routing engine in an iterative loop ($n=12$), injecting Gaussian Noise ($\pm 15$) into the friction matrix on each pass. This simulated different human choices, transforming the single path into a "braided" probability field.
+**3. Install Dependencies:**
+    pip install -r requirements.txt
 
-### Iteration 4: The "Ghosting" Problem & Anisotropic Permeability
+**4. Data Placement:** Ensure the raw DEM files and shapefiles are placed in the `data/` directory. *(Note: empty directories are tracked via `.gitkeep`).*
 
-- **Goal:** Finalize the architectural realism of the simulated paths.
-- **Challenge:** Visual inspection of the braided network revealed that paths were "ghosting" (cutting directly through the solid western walls of Buildings 161 and 226) because the algorithm calculated that traversing 3 pixels of "wall" was mathematically cheaper than a 15-pixel detour around the building.
-- **Solution - The "Permeable Wall" Anisotropy:** We completely rebuilt the doorway vector logic using a directional Cosine Similarity gradient.
-  - **Entrance Alignment ($>0.7 \cos$):** Assigned a $0.1\times$ cost multiplier, creating a "gravitational pull" into the doorway.
-  - **Opposing Walls ($<0.7 \cos$):** Assigned a **$20.0\times$ penalty**. 
-  - *Crucial Context:* We purposefully avoided an "Infinite/Hard Wall" penalty. In archaeological ruins, walls are often collapsed into rubble. An infinite penalty would turn the site into an artificial maze and break the algorithm on single-pixel gaps. The $20\times$ penalty is "High but Permeable"—it successfully forces the primary route to detour to the correct East entrances, while allowing the probabilistic braids to reflect the faint possibility of traversing collapsed ruins.
+**5. Execution Order:**
+* Run `python scripts/01_preprocess_doorways.py` (Prepares doorway vectors).
+* Run `python scripts/02_task1_pipeline.py` (Generates spatial network).
+* *Note on Task 2:* You can open the Task 2 scripts and modify `OBSERVER_PT_ID` to dynamically calculate visibility from any building (e.g., 154, 180, 224).
+* Run `python scripts/03a_task2_viewshed.py` (Generates the 2D GIS vector layer dynamically named by ID).
+* Run `python scripts/03b_task2_3d_render.py` (Generates the interactive browser-based 3D volume).
 
----
+**6. Viewing in QGIS:**
+To verify the vector outputs, open QGIS and import `DEM_Subset-Original.tif` as a Hillshade base layer. Set the Hillshade blending mode to **Multiply** over a satellite base map for true 3D depth. Drag and drop the generated `Task1_Global_Minimum_Path.shp` and `Task2_Viewshed.shp` files over the terrain. Apply a 60% opacity to the viewshed layer to visualize the precise gradient of visibility.
 
-## Final Technical Architecture
+## 7. Test Results & Visual Proof
 
-The finalized Task 1 pipeline (`lamp_task1_final.py`) operates in four distinct phases:
+**Generated Artifacts:**
+* `output/Marks_Brief1_with_Vectors.shp`
+* `output/Task1_Global_Minimum_Path.shp`
+* `output/Task1_Probabilistic_Network.shp`
+* `output/Task2_Viewshed_[ID].shp` (Dynamically generated based on observer point)
 
-1. **Topographic & Spectral Initialization:** * Reads the `DEM_Subset-Original.tif` to calculate directional gradients (Slope).
-  - Reads the `SAR-MS.tif` and applies Unsupervised ML to generate a Soil Density Friction layer.
-2. **Anisotropic Field Generation:**
-  - Reads building footprints and applies the 20x / 0.1x Cosine Similarity modifiers to the cost surface based on manually extracted doorway angles.
-3. **Stochastic Pathfinding:**
-  - Utilizes `skimage.graph.route_through_array` to calculate routes from a central node (Building 180) to all surrounding ROI nodes.
-  - Applies Gaussian noise per iteration to generate spatial deviation.
-4. **Geospatial Export:**
-  - Re-projects pixel coordinates back to `EPSG:32636` and exports the simulated network as `LAMP_Final_Braided_Paths.shp`.
+### Task 1: Anisotropic Pathfinding Simulation
+This rendering demonstrates the probabilistic spatial network. The algorithm injects high friction penalties for buildings and low friction for doorways, tracing the global minimum path (red) across the topology.
 
----
+<img src="images/path.png" width="100%" alt="Task 1 Pathway">
+> **Figure 1:** The predicted transit pathway navigating the necropolis topology, highlighting the avoidance of 3D structures and utilization of mapped doorways.
 
-## Results & Inferences
+### Task 2: Vector Viewsheds & 3D Interactive Volumes
+The pipeline dynamically calculates viewsheds from any given point. Below are the results from three critical observer points: a boundary structure (154), the central complex (180), and an eastern tomb (224).
+* **Top Row:** Mathematically ray-traced 2D GIS vector layers (Cyan) draped over satellite imagery and 3D hillshades.
+* **Bottom Row:** Interactive 3D browser renders showcasing roof-edge occlusion and true Z-axis shadows.
 
-Upon overlaying the final Probabilistic Network (Red Braids) in QGIS, several key behavioral patterns emerged:
-
-1. **Doorway Magnetism:** The braided lines successfully converge at specific architectural openings, proving the anisotropic logic overrode the default "shortest distance" algorithm.
-2. **Alleyway Priority:** Paths correctly route *around* solid structures (e.g., the western walls of 161 and 226), adhering to the physical topology of the "streets."
-3. **The "South Gate" Corridor:** The Monte Carlo simulations revealed a highly dense, consistently overlapping path along the southern edge of the main enclosure. By cross-referencing this with the SAR K-Means output, we infer this was a primary historical thoroughfare due to its combination of low topographic slope and high sub-surface compaction.
-
----
-
-## Tech Stack
-
-- **Geospatial Processing:** `Rasterio`, `GeoPandas`, `Shapely`
-- **Machine Learning:** `Scikit-learn` (K-Means Clustering)
-- **Pathfinding Engine:** `Scikit-image` (MCP - Minimal Cost Path)
-- **Visualization:** `QGIS 3.x`
-
-## notes
-
-By fusing Unsupervised ML (SAR density) with Anisotropic Doorway penalties, the model identified a previously 'invisible' packed-earth corridor along the southern edge of the site. As seen on the map, the Global Minimum Cost Path (Baseline) now perfectly bisects the densest cluster of the Probabilistic Monte Carlo network. This proves that the combination of architectural layout and historical soil compaction dictated a primary southern thoroughfare, while the braided network successfully visualizes the secondary range of human deviations through the neighborhood alleyways.
-
-The probabilistic simulation reveals a highly constrained spatial network. Rather than dispersing evenly across the site, the Monte Carlo iterations consistently converged on a single dominant Western-to-Southern corridor. This strong clustering indicates that the combination of the site's topography, surviving architectural boundaries, and historically compacted soil created a highly formalized 'main artery' for human movement, with variations limited to micro-deviations around specific tomb clusters.
+| Observer Point | Building 154 | Building 180 | Building 224 |
+| :--- | :--- | :--- | :--- |
+| **2D GIS Vector** | <img src="images/2d_154.png" width="100%"> | <img src="images/2d_180.png" width="100%"> | <img src="images/2d_224.png" width="100%"> |
+| **3D Volume** | <img src="images/3d_154.png" width="100%"> | <img src="images/3d_180.png" width="100%"> | <img src="images/3d_224.png" width="100%"> |

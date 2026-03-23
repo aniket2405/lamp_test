@@ -1,6 +1,24 @@
-import geopandas as gpd
 import os
+import logging
+from datetime import datetime
+import geopandas as gpd
 
+# --- LOGGING SETUP ---
+# Create logs directory if it doesn't exist
+os.makedirs("logs", exist_ok=True)
+log_filename = datetime.now().strftime("logs/lamp_pipeline_%Y%m%d.log")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.FileHandler(log_filename), # Saves to the text file
+        logging.StreamHandler()            # Prints to the terminal
+    ]
+)
+
+# --- CONFIG ---
 MARKS_FILE = "data/Marks_Brief1.shp"
 BUILDINGS_FILE = "data/BuildingFootprints.shp"
 OUTPUT_FILE = "data/Marks_Brief1_with_Vectors.shp"
@@ -19,18 +37,20 @@ doorway_angles = {
 }
 
 def main():
-    print("--- PREPROCESSING: SPATIAL JOIN FOR DOORWAY VECTORS ---")
+    logging.info("--- PREPROCESSING: SPATIAL JOIN FOR DOORWAY VECTORS ---")
     
     if not os.path.exists("data"):
-        print("ERROR: 'data' folder not found. Run from the project root.")
+        logging.error("'data' folder not found. Run from the project root.")
         return
 
+    logging.info("Loading Shapefiles...")
     marks = gpd.read_file(MARKS_FILE)
     buildings = gpd.read_file(BUILDINGS_FILE)
 
     marks = marks.to_crs(buildings.crs)
     b_id_col = next((c for c in buildings.columns if c.lower() in ['id', 'fid', 'objectid', 'build_id']), buildings.columns[0])
     
+    logging.info(f"Performing spatial join using building ID column: '{b_id_col}'...")
     joined = gpd.sjoin(marks, buildings[[b_id_col, 'geometry']], how='left', predicate='within')
     joined['Door_Angle'] = "Unknown"
     match_count = 0
@@ -44,8 +64,8 @@ def main():
         except: continue
             
     joined.to_file(OUTPUT_FILE)
-    print(f"SUCCESS: Geographically matched {match_count} points to buildings.")
-    print(f"Saved to: {OUTPUT_FILE}")
+    logging.info(f"SUCCESS: Geographically matched {match_count} doorway vectors to buildings.")
+    logging.info(f"Vector data saved to: {OUTPUT_FILE}")
 
 if __name__ == "__main__":
     main()
