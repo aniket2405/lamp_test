@@ -4,23 +4,24 @@
 * **Link:** https://github.com/aniket2405/lamp_test
 
 ## 2. Description
-**Overview:** This repository contains a complete spatial data science pipeline developed for the Late Antiquity Modeling Project (LAMP). It reconstructs the embodied experiences of the El Bagawat necropolis by predicting probabilistic human transit patterns and calculating true 3D visual occlusion.
+**Overview:** This repository contains a spatial data science and machine learning pipeline developed for the Late Antiquity Modeling Project (LAMP). Set in the necropolis of El Bagawat (Egypt’s Kharga Oasis), this project reconstructs the embodied experiences of ancient communities. By developing predictive models for human transit and calculating true 3D visual occlusion, this pipeline moves beyond traditional hydrographic GIS analysis to craft accurate historical reconstructions.
 
 **Requirements Achieved:**
-* **Task 1:** ML-driven pathfinding accounting for topography, surface friction, and specific building entrances. Rendered as a GIS vector layer.
-* **Task 2:** 3D ray-traced viewsheds calculating gradients of visibility across a true 3D landscape (accounting for Z-heights of mud-brick tombs). Rendered as a GIS vector layer.
+* **Task 1:** ML-driven predictive pathfinding model accounting for topography, walking surface types, and the directional influence of specific building entrances. Rendered as a GIS vector layer.
+* **Task 2:** 3D ray-traced viewshed model projecting gradients of visibility from a complex 3D scene (accounting for Z-heights of mud-brick tombs). Rendered as a GIS vector layer.
 * **Bonus:** Interactive 3D volume rendering of the landscape and viewsheds.
 * **Developer UX:** Interactive `demo.ipynb` wrapper for rapid testing.
+* **Roadmap Note (Audibility):** The 3D ray-casting architecture developed here for visual occlusion serves as the mathematical foundation for modeling acoustic propagation (audibility) during the proposed GSoC timeline.
 
 ## 3. Condition Logic (The Architecture)
 
-### Task 1: Probabilistic Path Tracing
-* **Logic:** Replaced standard "least-cost path" (water-flow) algorithms with a probabilistic spatial network. The algorithm injects severe friction penalties for intersecting solid mud-brick tombs, while creating zero-friction nodes at verified architectural entrances (e.g., Doorways).
-* **Result:** Generates a braided network of likely transit corridors, proving that the primary southern thoroughfare was the path of least resistance.
+### Task 1: Predictive Path Tracing & Spatial Networks
+* **Logic:** Current architectural state-of-the-art relies on flawed "least-cost paths" (water-flow models based solely on steepness). This pipeline introduces a predictive spatial network that ingests multiple variables. It generates a complex friction surface model that applies severe penalties for intersecting solid structures while creating zero-friction attractors at verified architectural entrances (doorways) and favorable walking surfaces.
+* **Result:** Rather than a single hydrographic line, the model generates a braided network of likely transit corridors (agential possibilities), successfully predicting the primary southern thoroughfare as the path of least resistance between any given buildings.
 
-### Task 2: 3D Viewshed Ray-Tracing
-* **Logic:** Standard 2D planimetric tools fail to account for building heights. This pipeline utilizes a 2.5D Digital Elevation Model (`DEM_Subset-WithBuildings.tif`) to cast mathematical line-of-sight rays. The condition evaluates the slope angle of the ray: if an intervening building's Z-height exceeds the maximum slope seen so far, the ray terminates, creating an architectural shadow (roof-edge occlusion).
-* **Dynamic Targeting:** The observer logic is highly modular, engineered to calculate visual occlusion from *any given point* or building ID on the site, at a biologically accurate human eye level (1.6m).
+### Task 2: 3D Viewshed Ray-Tracing from Complex Scenes
+* **Logic:** Standard Space Syntax and GIS planimetric tools fail to account for building heights and hilly topography. This pipeline utilizes a 2.5D Digital Elevation Model (`DEM_Subset-WithBuildings.tif`) to train a mathematical line-of-sight ray-tracer. The condition evaluates the slope angle of the ray across the full 3D volume: if an intervening building's Z-height exceeds the maximum slope seen so far, the ray terminates, creating a true architectural shadow (roof-edge occlusion).
+* **Dynamic Targeting:** The observer logic is highly modular, engineered to project visual occlusion from *any given point* or building ID on the site, accurately simulating what a person could see at a biologically accurate human eye level (1.6m).
 
 ## 4. Logging Implementation
 **Pipeline Execution Logs:** The scripts utilize a dual-handler logging architecture via Python's `logging` module.
