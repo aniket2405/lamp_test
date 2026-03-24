@@ -13,7 +13,25 @@
 * **Developer UX:** Interactive `demo.ipynb` wrapper for rapid testing.
 * **Roadmap Note (Audibility):** The 3D ray-casting architecture developed here for visual occlusion serves as the mathematical foundation for modeling acoustic propagation (audibility) during the proposed GSoC timeline.
 
-## 3. Condition Logic (The Architecture)
+## 3. Repository Structure
+
+```text
+lamp_test/
+├── data/                           # Input GIS datasets (DEMs, Shapefiles)
+├── scripts/                        # Core processing pipeline
+│   ├── 01_preprocess_doorways.py   # Vectorizes building entrances
+│   ├── 02_task1_pipeline.py        # Pathfinding & Network analysis
+│   ├── 03a_task2_viewshed.py       # 3D Ray-tracing logic
+│   └── 03b_task2_3d_render.py      # Plotly volume rendering
+├── utils/                          # Helper utility file
+├── output/                         # Generated Shapefiles and execution logs
+├── images/                         # Documentation assets and README figures
+├── demo.ipynb                      # Interactive notebook wrapper for evaluation
+├── requirements.txt                # Project dependencies
+└── README.md                       # Project documentation and setup guide
+```
+
+## 4. Condition Logic (The Architecture)
 
 ### Task 1: Predictive Path Tracing & Spatial Networks
 * **Logic:** Current architectural state-of-the-art relies on flawed "least-cost paths" (water-flow models based solely on steepness). This pipeline introduces a predictive spatial network that ingests multiple variables. It generates a complex friction surface model that applies severe penalties for intersecting solid structures while creating zero-friction attractors at verified architectural entrances (doorways) and favorable walking surfaces.
@@ -23,7 +41,31 @@
 * **Logic:** Standard Space Syntax and GIS planimetric tools fail to account for building heights and hilly topography. This pipeline utilizes a 2.5D Digital Elevation Model (`DEM_Subset-WithBuildings.tif`) to train a mathematical line-of-sight ray-tracer. The condition evaluates the slope angle of the ray across the full 3D volume: if an intervening building's Z-height exceeds the maximum slope seen so far, the ray terminates, creating a true architectural shadow (roof-edge occlusion).
 * **Dynamic Targeting:** The observer logic is highly modular, engineered to project visual occlusion from *any given point* or building ID on the site, accurately simulating what a person could see at a biologically accurate human eye level (1.6m).
 
-## 4. Logging Implementation
+## 5. Pipeline Architecture Flowchart
+
+The following diagram illustrates the transformation of raw spatial data into predictive archaeological models:
+
+```mermaid
+graph TD
+    subgraph Ingest [1. Input Data]
+        A[(2.5D DEM)] --- B[(Building Vectors)]
+    end
+
+    subgraph Logic [2. Algorithmic Processing]
+        B --> C[Pre-process Doorways]
+        C --> D{Environmental Constraints}
+        A --> D
+        D -->|Ray-Casting| E[3D Viewshed Engine]
+        D -->|Cost-Surface| F[Probabilistic Pathfinding]
+    end
+
+    subgraph Deliverables [3. Artifact Generation]
+        E --> G[Vector .shp & 3D HTML]
+        F --> H[GIS Transit Layers]
+    end
+```
+
+## 6. Logging Implementation
 **Pipeline Execution Logs:** The scripts utilize a dual-handler logging architecture via Python's `logging` module.
 
 Outputs are synchronously printed to `stdout` for real-time monitoring and permanently saved to timestamped text files (e.g., `logs/lamp_pipeline_20260321.log`). Log milestones include:
@@ -32,7 +74,7 @@ Outputs are synchronously printed to `stdout` for real-time monitoring and perma
 * Ray-casting counts (e.g., `[INFO] Casting true 3D rays (Shadows enabled)...`).
 * Mesh generation and explicit 3D geometry extrusion stages.
 
-## 5. How to Run Locally
+## 7. How to Run Locally
 
 **1. Clone the Repository:**
 ```bash
@@ -91,7 +133,7 @@ python scripts/03b_task2_3d_render.py
 **6. Viewing in QGIS:**
 To verify the vector outputs, open QGIS and import `DEM_Subset-Original.tif` as a Hillshade base layer. Set the Hillshade blending mode to **Multiply** over a satellite base map for true 3D depth. Drag and drop the generated `Task1_Global_Minimum_Path.shp` and `Task2_Viewshed.shp` files over the terrain. Apply a 60% opacity to the viewshed layer to visualize the precise gradient of visibility.
 
-## 7. Test Results & Visual Proof
+## 8. Test Results & Visual Proof
 
 **Generated Artifacts:**
 * `output/Marks_Brief1_with_Vectors.shp`
